@@ -8,6 +8,7 @@ import {WithdrawModule} from "../src/modules/WithdrawModule.sol";
 import {ResolverModule} from "../src/modules/ResolverModule.sol";
 import {Vault} from "../src/Vault.sol";
 import {Modularity} from "../src/Modularity.sol";
+import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 contract VaultTest is Test {
     Vault public vault;
@@ -20,10 +21,13 @@ contract VaultTest is Test {
             withdraw: address(new WithdrawModule()),
             resolver: address(new ResolverModule())
         });
-        // deploy vault
-        vault = new Vault(modules);
-        // initialize vault
-        vault.initialize(address(this));
+
+        // deploy implementation
+        address implementation = address(new Vault(modules));
+
+        // deploy proxy
+        address proxy = address(new TransparentUpgradeableProxy(implementation, address(this), abi.encodeWithSignature("initialize(address)", address(this))));
+        vault = Vault(proxy);
     }
 
     function test_deposit_withdraw_owner() public {
